@@ -1,4 +1,5 @@
 import { requireEnv } from "@/lib/env";
+import { safeEqual } from "@/lib/auth";
 import { issueCode } from "@/lib/oauth";
 
 // Authorization endpoint. Because this is a single-user server, "logging in" =
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
   const get = (k: string) => (form.get(k)?.toString() ?? "");
   const values = Object.fromEntries(PARAMS.map((p) => [p, get(p)]));
 
-  if (get("secret") !== requireEnv("MCP_SECRET")) {
+  if (!safeEqual(get("secret"), requireEnv("MCP_SECRET"))) {
     return page(values, "Incorrect secret. Try again.");
   }
 

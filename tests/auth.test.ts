@@ -13,11 +13,11 @@ describe("secretOk", () => {
   it("accepts a correct Authorization: Bearer header", () => {
     expect(secretOk(req("https://x/api/mcp", { authorization: "Bearer s3cr3t" }))).toBe(true);
   });
-  it("accepts a correct ?key query param", () => {
-    expect(secretOk(req("https://x/api/mcp?key=s3cr3t"))).toBe(true);
+  it("rejects the secret in a ?key query param (URLs get logged)", () => {
+    expect(secretOk(req("https://x/api/mcp?key=s3cr3t"))).toBe(false);
   });
   it("rejects a wrong secret", () => {
-    expect(secretOk(req("https://x/api/mcp?key=nope"))).toBe(false);
+    expect(secretOk(req("https://x/api/mcp", { authorization: "Bearer nope" }))).toBe(false);
   });
   it("rejects a missing secret", () => {
     expect(secretOk(req("https://x/api/mcp"))).toBe(false);

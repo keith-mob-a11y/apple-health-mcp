@@ -26,9 +26,11 @@ export async function handleIngest(req: Request, getDbFn: () => Db): Promise<Res
   }
   const parsed = haePayloadSchema.safeParse(body);
   if (!parsed.success) {
-    // Log validation failures so unexpected HAE payload shapes are diagnosable.
-    console.warn("[ingest] validation failed:", JSON.stringify(parsed.error.issues.slice(0, 5)));
-    return Response.json({ error: "invalid payload", detail: parsed.error.issues }, { status: 400 });
+    // Log only the issue codes and paths. Never the issues' own text or the payload,
+    // which can echo health values back into the logs.
+    const issues = parsed.error.issues.slice(0, 5).map((i) => ({ code: i.code, path: i.path.join(".") }));
+    console.warn("[ingest] validation failed:", JSON.stringify(issues));
+    return Response.json({ error: "invalid payload", issues }, { status: 400 });
   }
   const normalized = normalize(parsed.data);
   try {
@@ -39,7 +41,7 @@ export async function handleIngest(req: Request, getDbFn: () => Db): Promise<Res
     // Surface the real reason (param limits, timeouts, bad data) instead of a blank
     // 500, so failures are diagnosable from the app's response and the Vercel logs.
     const message = err instanceof Error ? err.message : "persist failed";
-    console.error("[ingest] persist error:", message);
+    console.error("[ingest] persist error"); // message withheld from logs: can quote row values
     return Response.json({ error: "ingest failed", detail: message }, { status: 500 });
   }
 }

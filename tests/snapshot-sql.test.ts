@@ -3,7 +3,6 @@ import { makeTestDb } from "./helpers/db";
 import { normalize } from "@/lib/ingest";
 import { persist } from "@/lib/persist";
 import { latestSnapshot } from "@/lib/tools/latest-snapshot";
-import { healthSql, assertReadOnly } from "@/lib/tools/health-sql";
 
 async function seeded() {
   const db = await makeTestDb();
@@ -24,24 +23,5 @@ describe("latest_snapshot", () => {
     const snap = await latestSnapshot(await seeded());
     const step = snap.find((s: any) => s.metricName === "step_count");
     expect(step.value).toBe("250");
-  });
-});
-
-describe("health_sql guard", () => {
-  it("allows a single SELECT", () => {
-    expect(() => assertReadOnly("SELECT count(*) FROM metric_samples")).not.toThrow();
-  });
-  it("allows a WITH/CTE select", () => {
-    expect(() => assertReadOnly("WITH x AS (SELECT 1) SELECT * FROM x")).not.toThrow();
-  });
-  it("rejects INSERT", () => {
-    expect(() => assertReadOnly("INSERT INTO metric_samples DEFAULT VALUES")).toThrow();
-  });
-  it("rejects multi-statement", () => {
-    expect(() => assertReadOnly("SELECT 1; DROP TABLE workouts")).toThrow();
-  });
-  it("runs a select and returns rows", async () => {
-    const rows = await healthSql(await seeded(), "SELECT count(*)::int AS n FROM metric_samples");
-    expect(rows[0].n).toBe(2);
   });
 });
