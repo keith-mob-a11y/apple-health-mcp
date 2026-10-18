@@ -29,6 +29,12 @@ describe("parseLines", () => {
     expect(r.skipped).toBe(3);
   });
 
+  it("drops a zero weight but keeps a zero step count", () => {
+    const r = parseLines("weight|2026-10-18|0|kg\nsteps|2026-10-18|0");
+    expect(r.metricRows.map((m) => m.metricName)).toEqual(["step_count"]);
+    expect(r.skipped).toBe(1);
+  });
+
   it("keeps the last value when a metric and day repeat", () => {
     const r = parseLines("steps|2026-10-18|100\nsteps|2026-10-18|900");
     expect(r.metricRows).toHaveLength(1);

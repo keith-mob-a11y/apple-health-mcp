@@ -76,6 +76,9 @@ export function parseLines(text: string): NormalizeResult {
     const day = f[1];
     let value = num(f[2]);
     if (!metric || !day || !DAY_RE.test(day) || value == null) { skipped++; continue; }
+    // A day with no weigh-in can reach us as 0 from an empty Health query. A real weight
+    // is never 0, and storing it would drag the rolling average down.
+    if (kind === "weight" && value <= 0) { skipped++; continue; }
     const date = new Date(`${day}T12:00:00Z`);
     if (Number.isNaN(date.getTime())) { skipped++; continue; }
 
