@@ -29,10 +29,10 @@ describe("parseLines", () => {
     expect(r.skipped).toBe(3);
   });
 
-  it("drops a zero weight but keeps a zero step count", () => {
-    const r = parseLines("weight|2026-10-18|0|kg\nsteps|2026-10-18|0");
+  it("drops a zero weight, energy or protein but keeps a zero step count", () => {
+    const r = parseLines("weight|2026-10-18|0|kg\nenergy|2026-10-18|0\nprotein|2026-10-18|0\nsteps|2026-10-18|0");
     expect(r.metricRows.map((m) => m.metricName)).toEqual(["step_count"]);
-    expect(r.skipped).toBe(1);
+    expect(r.skipped).toBe(3);
   });
 
   it("keeps the last value when a metric and day repeat", () => {
