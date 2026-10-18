@@ -45,7 +45,9 @@ export async function POST(req: Request) {
   const get = (k: string) => (form.get(k)?.toString() ?? "");
   const values = Object.fromEntries(PARAMS.map((p) => [p, get(p)]));
 
-  if (!safeEqual(get("secret"), requireEnv("MCP_SECRET"))) {
+  // Trim: a secret copied from a password manager or a note often carries a trailing
+  // space or newline. MCP_SECRET is hex, so trimming can never turn a wrong value right.
+  if (!safeEqual(get("secret").trim(), requireEnv("MCP_SECRET"))) {
     return page(values, "Incorrect secret. Try again.");
   }
 
