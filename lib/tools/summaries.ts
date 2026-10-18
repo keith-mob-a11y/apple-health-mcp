@@ -19,7 +19,9 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MS = 86_400_000;
 
 export function tz(): string {
-  const z = process.env.HEALTH_TZ ?? "Europe/London";
+  // Trim whitespace and wrapping quotes: a value pasted into a dashboard field often
+  // carries a trailing space or newline, which would otherwise fail the check below.
+  const z = (process.env.HEALTH_TZ ?? "Europe/London").trim().replace(/^(["'])(.*)\1$/, "$2").trim() || "Europe/London";
   // Interpolated as raw SQL (a bound parameter would differ between SELECT and
   // GROUP BY), so it must be a plain zone name.
   if (!/^[A-Za-z0-9_/+-]+$/.test(z)) throw new Error("Invalid HEALTH_TZ");

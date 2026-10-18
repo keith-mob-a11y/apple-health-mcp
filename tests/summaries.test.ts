@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { makeTestDb } from "./helpers/db";
 import { normalize } from "@/lib/ingest";
 import { persist } from "@/lib/persist";
-import { dailySummary, nutritionSummary, workoutSummary, weightTrend, addDays, today } from "@/lib/tools/summaries";
+import { dailySummary, nutritionSummary, workoutSummary, weightTrend, addDays, today, tz } from "@/lib/tools/summaries";
 
 beforeEach(() => { process.env.HEALTH_TZ = "Europe/London"; });
 
@@ -72,5 +72,21 @@ describe("summary tools", () => {
     await expect(dailySummary(db, { start: "01/06/2026", end: "2026-06-02" })).rejects.toThrow(/YYYY-MM-DD/);
     await expect(dailySummary(db, { start: "2026-01-01", end: "2026-06-01" })).rejects.toThrow(/too long/);
     await expect(dailySummary(db, { start: "2026-06-03", end: "2026-06-01" })).rejects.toThrow(/before start/);
+  });
+});
+
+describe("tz", () => {
+  it("tolerates stray whitespace and wrapping quotes from a pasted env value", () => {
+    for (const v of ["Europe/London ", " Europe/London\n", '"Europe/London"', "'Europe/London'"]) {
+      process.env.HEALTH_TZ = v;
+      expect(tz()).toBe("Europe/London");
+    }
+  });
+
+  it("falls back to Europe/London when blank and still rejects junk", () => {
+    process.env.HEALTH_TZ = "   ";
+    expect(tz()).toBe("Europe/London");
+    process.env.HEALTH_TZ = "Europe/London; select 1";
+    expect(() => tz()).toThrow("Invalid HEALTH_TZ");
   });
 });
