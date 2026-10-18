@@ -73,6 +73,20 @@ call could have deleted data. The summary tools cover the weekly review without 
    - After the first sync run `list_metrics` and check the names match `METRICS` in
      `lib/tools/summaries.ts` (`weight_body_mass`, `dietary_energy`, `protein`, `step_count`,
      `active_energy`, `sleep_analysis`). Edit that map if HAE names differ.
+4b. **Free alternative: iOS Shortcuts instead of Health Auto Export.** Health Auto Export's
+   REST automation is a paid feature. `POST /api/ingest/lines` takes plain text instead, so a
+   Shortcuts personal automation can feed the server for nothing.
+   - Auth: `Authorization: Bearer <MCP_SECRET>`, `Content-Type: text/plain`.
+   - One record per line, pipe separated. Daily metrics are one line per local day:
+     `steps|2026-10-18|8421`, `weight|2026-10-18|82.4|kg`, `energy|...|kcal`, `protein|...|g`,
+     `active_energy|...|kcal`, `sleep|...|hours`.
+   - Workouts: `workout|<start ISO>|<name>|<duration minutes>|<end ISO>|<avg heart rate>`
+     (the last two are optional).
+   - Re-sending a day **replaces** its total, so today's partial count can be pushed hourly.
+     Weight in pounds is converted to kilograms. Bad lines are skipped and counted in the
+     response; the lines themselves are never logged.
+   - These rows use source `shortcuts`, so they never overwrite Health Auto Export data.
+     Do not run both feeds for the same metrics or the summary tools will add them together.
 5. **Connect Claude** — same URL everywhere: `https://<your-app>.vercel.app/api/mcp`
    - **Web / mobile / desktop (claude.ai):** add a Custom Connector with that URL.
      claude.ai requires OAuth, which this server implements: when prompted to sign

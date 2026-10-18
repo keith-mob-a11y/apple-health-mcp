@@ -28,18 +28,33 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 // Persist normalized rows idempotently:
-// - metric_samples: ON CONFLICT (metric_name,date,source) DO NOTHING (unique index).
+// - metric_samples: ON CONFLICT (metric_name,date,source) DO NOTHING (unique index),
+//   or DO UPDATE when opts.metricConflict is "update" (daily totals that get re-sent).
 // - workouts: ON CONFLICT (id) DO UPDATE (latest wins).
 // - health_events: delete existing rows matching (event_type,date,payload) then insert,
 //   since a portable jsonb-hash unique index isn't available across drivers.
-export async function persist(db: Db, data: NormalizeResult): Promise<IngestSummary> {
+export async function persist(
+  db: Db,
+  data: NormalizeResult,
+  opts: { metricConflict?: "ignore" | "update" } = {},
+): Promise<IngestSummary> {
+  const target = [metricSamples.metricName, metricSamples.date, metricSamples.source];
   for (const batch of chunk(data.metricRows, METRIC_CHUNK)) {
-    await db
-      .insert(metricSamples)
-      .values(batch)
-      .onConflictDoNothing({
-        target: [metricSamples.metricName, metricSamples.date, metricSamples.source],
+    const insert = db.insert(metricSamples).values(batch);
+    if (opts.metricConflict === "update") {
+      // Daily totals (the Shortcuts feed) are re-sent as the day fills up, so the latest
+      // value must win. A batch must not repeat a conflict key or Postgres rejects it.
+      await insert.onConflictDoUpdate({
+        target,
+        set: {
+          qty: sql`excluded.qty`,
+          units: sql`excluded.units`,
+          extra: sql`excluded.extra`,
+        },
       });
+    } else {
+      await insert.onConflictDoNothing({ target });
+    }
   }
 
   for (const w of data.workoutRows) {
